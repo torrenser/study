@@ -1,0 +1,213 @@
+---
+- name: Check Cilium System Requirements
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    cilium_min_kernel_version:
+      RedHat: '4.18'
+      Debian: '5.4'
+    supported_archs:
+      - x86_64
+      - aarch64
+    base_config_options:
+      - CONFIG_BPF
+      - CONFIG_BPF_SYSCALL
+      - CONFIG_BPF_JIT
+      - CONFIG_NET_CLS_BPF
+      - CONFIG_NET_CLS_ACT
+      - CONFIG_NET_SCH_INGRESS
+      - CONFIG_CRYPTO_SHA1
+      - CONFIG_CRYPTO_USER_API_HASH
+      - CONFIG_CGROUPS
+      - CONFIG_CGROUP_BPF
+      - CONFIG_PERF_EVENTS
+      - CONFIG_SCHEDSTATS
+    iptables_based_masquerading_config_options:
+      - CONFIG_NETFILTER_XT_SET
+      - CONFIG_IP_SET
+      - CONFIG_IP_SET_HASH_IP
+      - CONFIG_NETFILTER_XT_MATCH_COMMENT
+    tunnel_routing_config_options:
+      - CONFIG_FIB_RULES
+      - CONFIG_VXLAN
+      - CONFIG_GENEVE
+    L7_FQDN_policies_config_options:
+      - CONFIG_NETFILTER_XT_TARGET_CT
+      - CONFIG_NETFILTER_XT_TARGET_MARK
+      - CONFIG_NETFILTER_XT_TARGET_TPROXY
+      - CONFIG_NETFILTER_XT_MATCH_MARK
+      - CONFIG_NETFILTER_XT_MATCH_SOCKET
+    ipsec_config_options:
+      - CONFIG_XFRM
+      - CONFIG_XFRM_OFFLOAD
+      - CONFIG_XFRM_STATISTICS
+      - CONFIG_XFRM_ALGO
+      - CONFIG_XFRM_USER
+      - CONFIG_INET{,6}_ESP
+      - CONFIG_INET{,6}_IPCOMP
+      - CONFIG_INET{,6}_XFRM_TUNNEL
+      - CONFIG_INET{,6}_TUNNEL
+      - CONFIG_INET_XFRM_MODE_TUNNEL
+      - CONFIG_CRYPTO_AEAD
+      - CONFIG_CRYPTO_AEAD2
+      - CONFIG_CRYPTO_GCM
+      - CONFIG_CRYPTO_SEQIV
+      - CONFIG_CRYPTO_CBC
+      - CONFIG_CRYPTO_HMAC
+      - CONFIG_CRYPTO_SHA256
+      - CONFIG_CRYPTO_AES
+    bandwidth_manager_config_options:
+      - CONFIG_NET_SCH_FQ
+    netkit_config_options:
+      - CONFIG_NETKIT
+
+  tasks:
+    - name: Assert supported CPU architecture
+      ansible.builtin.assert:
+        that: "ansible_facts['architecture'] in supported_archs"
+        fail_msg: "the architecture is not supported. {{ ansible_facts['architecture'] }}"
+
+    - name: Set Variable (linux_kernel_number)
+      set_fact:
+        linux_kernel_number: "{{ ansible_facts['kernel'].split('.')[:2] | join('.') }}"
+
+    - name: Assert minimum kernel version
+      ansible.builtin.assert:
+        that: "(linux_kernel_number is version(cilium_min_kernel_version.get(ansible_facts['distribution_file_variety']), '>='))"
+        fail_msg: "kernel version is too low for Cilium. Required: >=5.4 (or >=4.18 for RHEL 8.6), Found: {{ linux_kernel_number }}"
+
+    - name: Build exact match regex for base_config_options
+      set_fact:
+        base_config_regex: "{{ base_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract base_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ base_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: base_config_options_count
+      changed_when: false
+
+    - name: Assert base_config_options
+      assert:
+        that:
+          - base_config_options_count.stdout | int == base_config_options | length
+        fail_msg: "some base_config_options are missing. (needs: {{ base_config_options | length }}, current: {{ base_config_options_count.stdout }})"
+
+    - name: Build exact match regex for iptables_based_masquerading_config_options
+      set_fact:
+        iptables_based_masquerading_config_regex: "{{ iptables_based_masquerading_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract iptables_based_masquerading_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ iptables_based_masquerading_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: iptables_based_masquerading_config_options_count
+      changed_when: false
+
+    - name: Assert iptables_based_masquerading_config_options
+      assert:
+        that:
+          - iptables_based_masquerading_config_options_count.stdout | int == iptables_based_masquerading_config_options | length
+        fail_msg: "some iptables_based_masquerading_config_options_count are missing. (needs: {{ iptables_based_masquerading_config_options | length }}, current: {{ iptables_based_masquerading_config_options_count.stdout }})"
+
+    - name: Build exact match regex for tunnel_routing_config_options
+      set_fact:
+        tunnel_routing_config_regex: "{{ tunnel_routing_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract tunnel_routing_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ tunnel_routing_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: tunnel_routing_config_options_count
+      changed_when: false
+
+    - name: Assert tunnel_routing_config_options
+      assert:
+        that:
+          - tunnel_routing_config_options_count.stdout | int == tunnel_routing_config_options | length
+        fail_msg: "some tunnel_routing_config_options are missing. (needs: {{ tunnel_routing_config_options | length }}, current: {{ tunnel_routing_config_options_count.stdout }})"
+
+    - name: Build exact match regex for L7_FQDN_policies_config_options
+      set_fact:
+        L7_FQDN_policies_config_regex: "{{ L7_FQDN_policies_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract L7_FQDN_policies_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ L7_FQDN_policies_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: L7_FQDN_policies_config_options_count
+      changed_when: false
+
+    - name: Assert L7_FQDN_policies_config_options
+      assert:
+        that:
+          - L7_FQDN_policies_config_options_count.stdout | int == L7_FQDN_policies_config_options | length
+        fail_msg: "some L7_FQDN_policies_config_options are missing. (needs: {{ L7_FQDN_policies_config_options | length }}, current: {{ L7_FQDN_policies_config_options_count.stdout }})"
+
+    - name: Build exact match regex for ipsec_config_options
+      set_fact:
+        ipsec_config_regex: "{{ ipsec_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract ipsec_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ ipsec_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: ipsec_config_options_count
+      changed_when: false
+
+    - name: Assert ipsec_config_options
+      assert:
+        that:
+          - ipsec_config_options_count.stdout | int == ipsec_config_options | length
+        fail_msg: "some ipsec_config_options are missing. (needs: {{ ipsec_config_options | length }}, current: {{ ipsec_config_options_count.stdout }})"
+
+    - name: Build exact match regex for bandwidth_manager_config_options
+      set_fact:
+        bandwidth_manager_config_regex: "{{ bandwidth_manager_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract bandwidth_manager_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ bandwidth_manager_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: bandwidth_manager_config_options_count
+      changed_when: false
+
+    - name: Assert bandwidth_manager_config_options
+      assert:
+        that:
+          - bandwidth_manager_config_options_count.stdout | int == bandwidth_manager_config_options | length
+        fail_msg: "some bandwidth_manager_config_options are missing. (needs: {{ bandwidth_manager_config_options | length }}, current: {{ bandwidth_manager_config_options_count.stdout }})"
+
+    - name: Build exact match regex for netkit_config_options
+      set_fact:
+        netkit_config_regex: "{{ netkit_config_options | map('regex_replace', '^(.*)$', '^\\1(=y|=m)$') | join('|') }}"
+  
+    - name: Extract netkit_config_options (from /boot/config-*)
+      shell: |
+        grep -E "{{ netkit_config_regex }}" /boot/config-{{ ansible_kernel }} | wc -l
+      register: netkit_config_options_count
+      changed_when: false
+
+    - name: Assert netkit_config_options
+      assert:
+        that:
+          - netkit_config_options_count.stdout | int == netkit_config_options | length
+        fail_msg: "some netkit_config_options are missing. (needs: {{ netkit_config_options | length }}, current: {{ netkit_config_options_count.stdout }})"
+
+    - name: Ensure eBPF filesystem is mounted
+      mount:
+        path: /sys/fs/bpf
+        src: bpffs
+        fstype: bpf
+        opts: defaults
+        state: mounted
+      # 멱등적 mount
+
+    - name: Print manual check instructions for Cilium DaemonSet (hostNetwork, privileged)
+      debug:
+        msg: |
+          Kubernetes 환경에서는 다음을 반드시 확인하세요:
+          - Cilium DaemonSet의 spec.template.spec.hostNetwork: true
+          - spec.template.spec.containers.securityContext.privileged: true
+          - cilium-agent가 root 또는 CAP_SYS_ADMIN 권한으로 실행되는지
+          (kubectl get daemonset -n kube-system cilium -o yaml | grep -E 'hostNetwork|privileged')
+
+    - name: Print reference link
+      debug:
+        msg: "cilium reference document: https://docs.cilium.io/en/stable/operations/system_requirements/" 

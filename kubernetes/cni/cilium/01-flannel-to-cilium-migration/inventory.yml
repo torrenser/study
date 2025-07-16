@@ -1,0 +1,23 @@
+k8s_cluster:
+  hosts:
+    k8s-ctr:
+      ansible_host: 127.0.0.1
+      ansible_port: 60000
+      ansible_user: vagrant
+      ansible_ssh_private_key_file: /Users/torrenser/Documents/study/kubernetes/auto-setting/.vagrant/machines/k8s-ctr/virtualbox/private_key
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+      ansible_python_interpreter: /usr/bin/python3
+    k8s-w1:
+      ansible_host: 127.0.0.1
+      ansible_port: 60001
+      ansible_user: vagrant
+      ansible_ssh_private_key_file: /Users/torrenser/Documents/study/kubernetes/auto-setting/.vagrant/machines/k8s-w1/virtualbox/private_key
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+      ansible_python_interpreter: /usr/bin/python3
+    k8s-w2:
+      ansible_host: 127.0.0.1
+      ansible_port: 60002
+      ansible_user: vagrant
+      ansible_ssh_private_key_file: /Users/torrenser/Documents/study/kubernetes/auto-setting/.vagrant/machines/k8s-w2/virtualbox/private_key
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+      ansible_python_interpreter: /usr/bin/python3
