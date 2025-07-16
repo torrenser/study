@@ -1,5 +1,6 @@
 # Flannel -> Cilium CNI 마이그레이션
 
+study/kubernetes/auto-setting 으로 구축된 시스템을 기준으로 설명합니다.
 cilium 시스템 필요 요구 사항들을 점검하고, flannel 을 삭제 후 cilium 을 설치합니다.
 
 - 리눅스 커널 CONFIG 구성 점검
