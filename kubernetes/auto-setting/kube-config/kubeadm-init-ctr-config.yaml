@@ -25,3 +25,5 @@ scheduler: {}
 etcd:
   local:
     dataDir: "/var/lib/etcd"
+proxy:
+  disabled: true
