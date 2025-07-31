@@ -1,7 +1,7 @@
 # Vagrant 로 k8s 테스트 환경 구축
 
 ## 최종 테스트 환경
-![alt text](image.png)
+![alt text](image-1.png)
 
 초기 프로비저닝으로 아래 내용들 세팅 자동화
 
@@ -9,6 +9,8 @@
 - POD 및 Service CIDR 네트워크 대역 설정
 - kubernetes 명령어 alias 설정
 - 필요한 라이브러리 설치
+- Hubble & Hubble Exporter 설치
+- Prometheus & Grafana 설치
 
 ## 구성 요소
 ### 인터페이스

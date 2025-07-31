@@ -1,0 +1,11 @@
+hubble:
+  enabled: true
+  export:
+    static:
+      enabled: true
+      filepath: /var/run/cilium/hubble/events.log
+      fieldMask: ["time", "source.namespace", "source.pod_name", "destination.namespace", "destination.pod_name", "verdict", "Summary"]
+      allowList:
+        - '{"verdict":["DROPPED", "ERROR"]}'
+      denyList:
+        - '{"source_pod":["kube-system/"], "destination_pod":["kube-system/"]}'

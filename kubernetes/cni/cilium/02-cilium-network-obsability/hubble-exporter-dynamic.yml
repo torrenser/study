@@ -1,0 +1,20 @@
+hubble:
+  export:
+    dynamic:
+      enabled: true
+      config:
+        enabled: true
+        content:
+        - name: "all"
+          filePath: "/var/run/cilium/hubble/testtest.log"
+          fieldMask: ["time", "source.namespace", "source.pod_name", "destination.namespace", "destination.pod_name", "verdict", "summary"]
+          includeFilters: []
+          excludeFilters: []
+        - name: "drop"
+          filePath: "/var/run/cilium/hubble/test.log"
+          fieldMask: ["time", "source.namespace", "source.pod_name", "destination.namespace", "destination.pod_name", "verdict", "summary"]
+          includeFilters:
+          - destination_pod: ["default/deathstar"]
+          excludeFilters:
+          - source_pod: ["kube-system/"]
+          - destination_pod: ["kube-system/"]
